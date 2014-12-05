@@ -1,0 +1,45 @@
+{
+    "nickname": "selbot",
+    "realname": "selbot",
+    "server": "barrgrlx",
+    "port": 6697,
+    "faq_base_url": "http://hopper.ad.selinc.com",
+    "faq_url_path": "/misc/faq.nsf/allDocuments.xsp",
+    "faq_timeout": 600.0,
+    "quotes_dir": "/srv/selbot/quotes/",
+    "channel_list": [
+        {
+            "name": "#test",
+            "services": [
+                "quotes",
+                "faq"
+            ],
+            "quote_timeout": 900.0
+        },
+        {
+            "name": "#computing",
+            "services": [
+                "faq"
+            ],
+            "quote_timeout": 900.0
+        },
+        {
+            "name": "#offtopic",
+            "services": [
+                "quotes",
+                "faq"
+            ],
+            "quote_timeout": 900.0
+        }
+    ],
+    "proxies": {
+        "http": "http://wall.ad.selinc.com:8080",
+        "https": "https://wall.ad.selinc.com:8080"
+    },
+    "admins": [
+        "mikebrow",
+        "maxbuss"
+    ]
+}
+
+
