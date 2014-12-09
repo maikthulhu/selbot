@@ -3,6 +3,8 @@
 <hr/>
 Currently available features:
 
+<h4> Commands </h4>
+
 | Command | Use |
 |:-------:|:---:|
 | !last | Displays the source of the most recent quote |
@@ -12,7 +14,8 @@ Currently available features:
 | !stats | Displays the bot's current uptime, quotes remaining, and time alive |
 | !ballot | Displays a current ballot for "Final 10" Quote-Vote (See below) |
 
-"Final 10" Quote-Vote
+<h4>"Final 10" Quote-Vote</h4>
+
 When selbot reaches the final 10 votes, he will initiate a lottery.  He will display a numbered list of all available quote sources,
 and then he will wait for people to vote.
 Example vote:
