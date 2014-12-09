@@ -5,6 +5,7 @@ from threading import Timer
 
 from FAQ import *
 from Quotes import *
+from FAQ_Command import FAQ_Command
 
 
 class Channel():
@@ -14,7 +15,7 @@ class Channel():
         self.services = channel_settings['services']
         self.quotes_list = QuotesList(quotes_dir)
         self.last_quote = None
-        self.last_faq = get_latest_faq()
+        self.last_faq = FAQ_Command.get_latest_faq()
         self.connection = None
         self.nickname = nickname
         self.last_speaker = self.nickname
@@ -22,14 +23,18 @@ class Channel():
         self.quote_last_ten = False
         self.quote_bets = None
 
+    def is_valid_vote(self, args, source):
+        pinged_me = args[0].startswith(self.nickname)
+        is_digit = len(args) > 1 and args[1].isdigit()
+        first_vote = source not in [bet['who'] for bet in self.quote_bets]
+        return pinged_me and is_digit and first_vote
+
     def start_quote_timer(self):
         if 'quotes' not in self.services:
             return
-
         self._quote_timer = Timer(self.quote_timeout, self.start_quote_timer)
         self._quote_timer.daemon = True
         self._quote_timer.start()
-
         if self.last_speaker != self.nickname:
             q = self.quotes_list.random_quote()
             self.last_quote = q
@@ -74,11 +79,9 @@ class Channel():
                 print "Error sending quote:", q
 
             self.last_speaker = self.nickname
-
         if self.quotes_list.check_for_updates():
             self.quote_last_ten = False
             self.connection.privmsg("BOT_OWNER", "New quotes!  Reloading...")
-
         if self.quote_last_ten == False:
             # If we are here then we know we have 10 or less left
             if len(self.quotes_list) == 10:
@@ -90,16 +93,15 @@ class Channel():
                     ' '.join(['\x02{}:\x0f {}'.format(i + 1, q['src']) for i, q in enumerate(self.quote_bets)]))
                 for line in textwrap.wrap(str_sources, 400):
                     self.connection.privmsg(self.name, line)
-                    # And since we have 10 or less left, if we're suddenly above 10 then we have reloaded and the previous quote was the last one.
         else:
             if len(self.quotes_list) > 10:
+                # And since we have 10 or less left, if we're suddenly above 10 then we have reloaded and the previous quote was the last one.
                 for q in self.quote_bets:
                     if q['src'] == self.last_quote.source.title():
                         if q['who']:
-                            self.connection.privmsg(self.name,
-                                                    '\x02{}\x0f is the winner with \x02{}\x0f!'.format(q['who'],
-                                                                                                       q['source']))
+                            ballot_result = '\x02{0}\x0f is the winner with \x02{1}\x0f!'.format(q['who'], q['source'])
                         else:
-                            self.connection.privmsg(self.name, 'No winner this time!')
+                            ballot_result = 'No winner this time!'
+                        self.connection.privmsg(self.name, ballot_result)
                 self.quote_last_ten = False
 

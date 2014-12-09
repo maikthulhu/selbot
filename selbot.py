@@ -32,8 +32,9 @@ class SELBot(SingleServerIRCBot):
             self.nickname = self.cfg['nickname']
             self.realname = self.cfg['realname']
         self.channel_list = []
-        self.parse_channels()
-        self.ignore_list = ["xkcdbot"]
+        for channel in self.cfg['channel_list']:
+            self.channel_list.append(Channel(channel, self.nickname, self.cfg['quotes_dir']))
+        self.ignore_list = []
         self.faq_timeout = self.cfg['faq_timeout']
         SingleServerIRCBot.__init__(
             self,
@@ -42,12 +43,7 @@ class SELBot(SingleServerIRCBot):
             realname=self.realname,
             connect_factory=connect_factory
         )
-
         self.connection.privmsg = self.privmsg
-
-    def parse_channels(self):
-        for channel in self.cfg['channel_list']:
-            self.channel_list.append(Channel(channel, self.nickname, self.cfg['quotes_dir']))
 
     def send_multiline_message(self, target, message):
         for line in message.split('\n'):
@@ -58,12 +54,10 @@ class SELBot(SingleServerIRCBot):
         with open('/proc/uptime', 'r') as f:
             uptime_seconds = float(f.readline().split()[0])
             uptime_string = str(datetime.timedelta(seconds=uptime_seconds))
-
         out = "My server's uptime: {0}.  ".format(uptime_string)
         out += "My uptime: {0}.  ".format(datetime.timedelta(seconds=(time.time() - self.start_time)))
         total_quotes = len(channel.quotes_list.quotes) + len(channel.quotes_list.spent_quotes)
         out += "Quotes left: {0}/{1}.  ".format(len(channel.quotes_list.quotes), total_quotes)
-
         return out
 
     def start_faq_timer(self):
@@ -97,92 +91,41 @@ class SELBot(SingleServerIRCBot):
         for ch in self.channel_list:
             if event.target == ch.name:
                 ch.last_speaker = source
-
         args = event.arguments[0].split()
-
         if len(args) < 1: return
-
-        if re.match(r'(.*?(botsnack.+selbot|selbot.+botsnack).*?)|((^botsnack.*?)|(.*?botsnack\S*?$))', ' '.join(args),
-                    re.IGNORECASE):
-            connection.privmsg(event.target, "nom nom nom")
+        self.match_keyword_list(connection, event, args)
 
     def on_privmsg(self, connection, event):
-        approved_nicks = ['NICKNAME1', 'NICKNAME2']
         source = event.source.split('!')[0]
         args = event.arguments[0].split()
-
         connection.privmsg("BOT_OWNER", source + " said: " + str(args))
-
-        if source in approved_nicks:
+        if source in self.cfg['admins']:
             if args[0].startswith("!"):
-                if args[0].lower() == "!say":
-                    if args[1:]:
-                        connection.privmsg(args[1], ' '.join(args[2:]))
-                if args[0].lower() == "!act":
-                    if args[1:]:
-                        connection.action(args[1], ' '.join(args[2:]))
-                if args[0].lower() == "!rb":
-                    if args[1:]:
-                        output = check_output(['toilet', '--irc', '-f', 'standard', '-F', 'gay', ' '.join(args[2:])])
-                        self.send_multiline_message(args[1], output)
-                elif args[0].lower() == "!op":
-                    if len(args) > 2:
-                        ch = args[1]
-                        nick = args[2]
-                        connection.mode(ch, "+o %s" % nick)
+                if "!say" == args[0].lower() and args[1:]:
+                    connection.privmsg(args[1], ' '.join(args[2:]))
+                elif "!act" == args[0].lower() and args[1:]:
+                    connection.action(args[1], ' '.join(args[2:]))
+                elif "!rb" == args[0].lower() and args[1:]:
+                    output = check_output(['toilet', '--irc', '-f', 'standard', '-F', 'gay', ' '.join(args[2:])])
+                    self.send_multiline_message(args[1], output)
+                elif "!op" == args[0].lower() and len(args) > 2:
+                    ch = args[1]
+                    nick = args[2]
+                    connection.mode(ch, "+o %s" % nick)
 
-    # KEEPING THIS FOR NOW.  THIS METHOD IS DEPRECATED IN FAVOR OF FACTORY PATTERN.  CHECK FOR FUNCTIONALITY BEFORE DELETING
-    def handle_commands(self, connection, event, channel):
-        args = event.arguments[0].split()
-        command = args[0].lower()
-        #Get last quote source
-        if "!last" == command:
-            if channel.last_quote:
-                connection.privmsg(event.target, channel.last_quote.source)
-        #Get new quote
-        elif "!quote" == command:
-            #Don't let people skip last 10 (for voting!)
-            if not channel.quote_last_ten:
-                #Check if they asked for a source
-                if len(args) > 1:
-                    try:
-                        #Grab a random quote from given source
-                        q = channel.quotes_list.random_quote(args[1])
-                    except Exception:
-                        #Invalid source name
-                        q = Quote("your_boss", "Don't you think you should be getting back to work?")
-                else:
-                    #Grab random quote from random source
-                    q = channel.quotes_list.random_quote()
-                channel.last_quote = q
-                #Print the quote
-                connection.privmsg(event.target, q)
-        #Get specific faq
-        elif "!faq" == command:
-            if len(args) > 1:
-                faq = FAQ_Command.get_latest_faq(args[1])
-                if faq is not None:
-                    connection.privmsg(event.target, str(faq))
-        #Get selbot's statistics
-        elif "!stats" == command:
-            stats = self.get_stats(channel)
-            connection.privmsg(event.target, stats)
-        #Get Relevant XKCD comic
-        elif "!relevant" == command:
-            find_xkcd(connection, event, ' '.join(args[1:]))
-        #Get the current chosen sources for voting
-        elif "!ballot" == command:
-            #Only enabled during voting (final 10 quotes)
-            if channel.quote_last_ten:
-                #Check if anyone has voted yet
-                if channel.quote_bets:
-                    connection.privmsg(event.target,
-                                       ' '.join(["{}: {}".format(q['who'], q['src']) for q in channel.quote_bets]))
-                else:
-                    connection.privmsg(event.target, "No one has voted yet, place your bets!")
-            else:
-                connection.privmsg(event.target, "No votes going on right now.  Check back later.")
+    # "keyword[ ...]" OR "[... ]keyword\S"
+    # "[... ]keyword[ ...]" AND "[... ]nickname[ ...]" or vice versa
+    def match_keyword(self, args, keyword):
+        message = ' '.join(args)
+        regex = '(.*?({0}.+{1}|{1}.+{0}).*?)|((^{0}.*?)|(.*?{0}\S*?$))'.format(keyword, self.nickname)
+        return re.match(regex, message, re.IGNORECASE)
 
+    def match_keyword_list(self, connection, event, args):
+        if self.match_keyword(args, 'botsnack'):
+            connection.privmsg(event.target, "nom nom nom")
+        elif self.match_keyword(args, 'botsmack'):
+            # TODO:  Implement list of responses
+            pass
 
     #inherited function from SingleServerIRCBot
     def on_pubmsg(self, connection, event):
@@ -198,65 +141,47 @@ class SELBot(SingleServerIRCBot):
         # connection.privmsg(event.target, '%s: %s' % (source, ' '.join(event.arguments)))
         #------------------#
         args = event.arguments[0].split()
-        if len(args) < 1: return
+        # Check for any urls in the arguments
+        url_args = [arg for arg in args if arg.startswith('http')]
+        if len(args) < 1:
+            return
         #Look for triggered commands
         if args[0].startswith("!"):
             cmd_class = Command.factory(args[0], connection, event, chan, self.start_time)
             cmd_class.resolve()
-        # "botsnack[ ...]" OR "[... ]botsnack\S"
-        # "[... ]botsnack[ ...]" AND "[... ]nickname[ ...]" or vice versa
-        elif re.match(
-                r'(.*?(botsnack.+selbot|selbot.+botsnack).*?)|((^botsnack.*?)|(.*?botsnack\S*?$))',
-                ' '.join(args), re.IGNORECASE):
-            connection.privmsg(event.target, "nom nom nom")
-            # "botsmack[ ...]" OR "[... ]botsmack\S"
-            # "[... ]botsmack[ ...]" AND "[... ]nickname[ ...]" or vice versa
-            # elif re.match(
-            # r'(.*?(botsmack.+selbot|selbot.+botsmack).*?)|((^botsmack.*?)|(.*?botsmack\S*?$))',
-            #' '.join(args), re.IGNORECASE):
-            # TODO:  IMPLEMENT "BOTSMACK" FUNCTION HERE
         #Last-Ten Quote Voting handler
-        elif args[0].startswith(self.nickname):
-            #Check for a vote source, and check if time to vote
-            if len(args) > 1 and chan.quote_last_ten:
-                if args[1].isdigit():
-                    # Make sure they haven't already voted
-                    # if not any([x['who'] == source for x in chan.quote_bets]):  #OLD CODE
-                    if source not in [bet['who'] for bet in chan.quote_bets]:  #TODO:  TEST THIS.  WORKS IN INTERPRETER
-                        choice = int(args[1])
-                        if 0 < choice <= len(chan.quote_bets):  # PYTHON WOOH
-                            #Check if someone else already picked it
-                            if not chan.quote_bets[choice - 1]['who']:
-                                chan.quote_bets[choice - 1]['who'] = source
-                                connection.privmsg(
-                                    event.target,
-                                    '\x02{}\x0f chose \x02{}\x0f'.format(source, chan.quote_bets[choice - 1]['src'])
-                                )
-                            else:
-                                connection.privmsg(
-                                    event.target,
-                                    '\x02{}\x0f was already chosen by \x02{}\x0f'.format(
-                                        chan.quote_bets[choice - 1]['who'], source)
-                                )
-        #Grab/display <title> text for URL
-        else:
-            for arg in args:
-                #Doesn't currently handle https because PROXY
-                if arg.startswith("http"):
-                    try:
-                        r = requests.get(arg, proxies=self.cfg['proxies'])
-                        if 'text/html' not in r.headers['content-type']:
-                            connection.privmsg(event.target, r.headers['content-type'])
-                            break
-                        soup = BeautifulSoup(r.text, convertEntities=BeautifulSoup.HTML_ENTITIES)
-                    except:
-                        print "ERROR: requests or BeautifulSoup: {0} ({1})".format(event.target, arg)
-                        pass
-                    else:
-                        if soup.title != None and soup.title.string != None and soup.title.string != "ERROR: The requested URL could not be retrieved":
-                            title = re.sub(r'\s+', r' ', soup.title.string).strip()
-                            connection.privmsg(event.target, '[title] {}'.format(title))
+        elif chan.is_valid_vote(args, source):
+            choice = int(args[1])
+            choice_idx = choice - 1
+            if 0 < choice <= len(chan.quote_bets):  # PYTHON WOOH
+                # Check if someone else already picked it
+                if not chan.quote_bets[choice_idx]['who']:
+                    chan.quote_bets[choice_idx]['who'] = source
+                    vote_response = '\x02{}\x0f chose \x02{}\x0f'.format(source, chan.quote_bets[choice_idx]['src'])
+                else:
+                    vote_response = '\x02{}\x0f was already chosen by \x02{}\x0f'.format(
+                        chan.quote_bets[choice_idx]['who'], source)
+                connection.privmsg(event.target, vote_response)
+        # Grab/display <title> text for URLs
+        elif len(url_args) > 0:
+            for arg in url_args:
+                try:
+                    r = requests.get(arg, proxies=self.cfg['proxies'])
+                    if 'text/html' not in r.headers['content-type']:
+                        connection.privmsg(event.target, r.headers['content-type'])
                         break
+                    soup = BeautifulSoup(r.text, convertEntities=BeautifulSoup.HTML_ENTITIES)
+                except:
+                    print "ERROR: requests or BeautifulSoup: {0} ({1})".format(event.target, arg)
+                    pass
+                else:
+                    if soup.title != None and soup.title.string != None and soup.title.string != "ERROR: The requested URL could not be retrieved":
+                        title = re.sub(r'\s+', r' ', soup.title.string).strip()
+                        connection.privmsg(event.target, '[title] {}'.format(title))
+                    break
+        # He should only look for things like 'botsnack' if there's nothing else to do!
+        else:
+            self.match_keyword_list(connection, event, args)
 
 
 if __name__ == "__main__":
