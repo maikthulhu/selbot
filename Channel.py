@@ -15,7 +15,6 @@ class Channel():
         self.services = channel_settings['services']
         self.quotes_list = QuotesList(quotes_dir)
         self.last_quote = None
-        self.last_faq = FAQ_Command.get_latest_faq()
         self.connection = None
         self.nickname = nickname
         self.last_speaker = self.nickname
@@ -26,7 +25,7 @@ class Channel():
     def is_valid_vote(self, args, source):
         pinged_me = args[0].startswith(self.nickname)
         is_digit = len(args) > 1 and args[1].isdigit()
-        first_vote = source not in [bet['who'] for bet in self.quote_bets]
+        first_vote = (source not in [bet['who'] for bet in self.quote_bets]) if self.quote_bets else False
         return pinged_me and is_digit and first_vote
 
     def start_quote_timer(self):

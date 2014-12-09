@@ -1,11 +1,6 @@
-# -*- coding: utf-8 -*-
-
 import sys
-import subprocess
 import time
-import json
 import ssl
-import urllib
 import irc
 
 from irc.bot import SingleServerIRCBot
@@ -13,8 +8,7 @@ from irc.connection import Factory
 from threading import Timer
 
 from util import *
-from Command import *
-from FAQ_Command import FAQ_Command
+from CommandFactory import CommandFactory
 from Channel import *
 
 SETTINGS_FILE = 'settings.json'
@@ -25,17 +19,19 @@ class SELBot(SingleServerIRCBot):
         self.cfg = settings
         self.debug = debug
         self.start_time = time.time()
+        self.channel_list = []
         if debug:
             self.nickname = 'testbot'
             self.realname = 'testbot'
+            self.channel_list.append(Channel(self.cfg['channel_list'][0], self.nickname, self.cfg['quotes_dir']))
         else:
             self.nickname = self.cfg['nickname']
             self.realname = self.cfg['realname']
-        self.channel_list = []
-        for channel in self.cfg['channel_list']:
-            self.channel_list.append(Channel(channel, self.nickname, self.cfg['quotes_dir']))
+            for channel in self.cfg['channel_list']:
+                self.channel_list.append(Channel(channel, self.nickname, self.cfg['quotes_dir']))
         self.ignore_list = []
         self.faq_timeout = self.cfg['faq_timeout']
+        self.last_faq = FAQ_Command.get_latest_faq()
         SingleServerIRCBot.__init__(
             self,
             server_list=[(self.cfg['server'], self.cfg['port'])],
@@ -84,7 +80,7 @@ class SELBot(SingleServerIRCBot):
             connection.join(channel.name)
             channel.connection = self.connection
             channel.start_quote_timer()
-            channel.start_faq_timer()
+            self.start_faq_timer()
 
     def on_action(self, connection, event):
         source = event.source.split('!')[0]
@@ -99,19 +95,18 @@ class SELBot(SingleServerIRCBot):
         source = event.source.split('!')[0]
         args = event.arguments[0].split()
         connection.privmsg("BOT_OWNER", source + " said: " + str(args))
-        if source in self.cfg['admins']:
-            if args[0].startswith("!"):
-                if "!say" == args[0].lower() and args[1:]:
-                    connection.privmsg(args[1], ' '.join(args[2:]))
-                elif "!act" == args[0].lower() and args[1:]:
-                    connection.action(args[1], ' '.join(args[2:]))
-                elif "!rb" == args[0].lower() and args[1:]:
-                    output = check_output(['toilet', '--irc', '-f', 'standard', '-F', 'gay', ' '.join(args[2:])])
-                    self.send_multiline_message(args[1], output)
-                elif "!op" == args[0].lower() and len(args) > 2:
-                    ch = args[1]
-                    nick = args[2]
-                    connection.mode(ch, "+o %s" % nick)
+        if source in self.cfg['admins'] and args[0].startswith("!"):
+            if "!say" == args[0].lower() and args[1:]:
+                connection.privmsg(args[1], ' '.join(args[2:]))
+            elif "!act" == args[0].lower() and args[1:]:
+                connection.action(args[1], ' '.join(args[2:]))
+            elif "!rb" == args[0].lower() and args[1:]:
+                output = check_output(['toilet', '--irc', '-f', 'standard', '-F', 'gay', ' '.join(args[2:])])
+                self.send_multiline_message(args[1], output)
+            elif "!op" == args[0].lower() and len(args) > 2:
+                ch = args[1]
+                nick = args[2]
+                connection.mode(ch, "+o %s" % nick)
 
     # "keyword[ ...]" OR "[... ]keyword\S"
     # "[... ]keyword[ ...]" AND "[... ]nickname[ ...]" or vice versa
@@ -147,7 +142,7 @@ class SELBot(SingleServerIRCBot):
             return
         #Look for triggered commands
         if args[0].startswith("!"):
-            cmd_class = Command.factory(args[0], connection, event, chan, self.start_time)
+            cmd_class = CommandFactory.factory(args[0], connection, event, chan, self.start_time)
             cmd_class.resolve()
         #Last-Ten Quote Voting handler
         elif chan.is_valid_vote(args, source):

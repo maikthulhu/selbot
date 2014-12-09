@@ -6,7 +6,7 @@
     "faq_base_url": "http://hopper.ad.selinc.com",
     "faq_url_path": "/misc/faq.nsf/allDocuments.xsp",
     "faq_timeout": 600.0,
-    "quotes_dir": "/srv/selbot/quotes/",
+    "quotes_dir": "/home/maxbuss/git/selbot/testquotes/",
     "channel_list": [
         {
             "name": "#test",
@@ -14,7 +14,7 @@
                 "quotes",
                 "faq"
             ],
-            "quote_timeout": 900.0
+            "quote_timeout": 10.0
         },
         {
             "name": "#computing",

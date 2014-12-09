@@ -3,6 +3,7 @@ import requests
 from BeautifulSoup import BeautifulSoup
 
 from Command import Command
+from util import *
 from FAQ import FAQ
 
 
@@ -22,13 +23,15 @@ class FAQ_Command(Command):
         self.connection.privmsg(target, message)
 
     def get_latest_faq(search=None):
-        base_url = "FAQ_BASE_URL"
+        cfg = parse_settings('settings.json')
+        base_url = cfg['faq_base_url']
+        faq_url_path = cfg['faq_url_path']
         q = None
         if search:
             q = {"vm": "0", "searchValue": search}
 
         try:
-            r = requests.get(base_url + "FAQ_URL_PATH", params=q)
+            r = requests.get(base_url + faq_url_path, params=q)
         except IOError:
             return None
         soup = BeautifulSoup(r.text, convertEntities=BeautifulSoup.HTML_ENTITIES)
