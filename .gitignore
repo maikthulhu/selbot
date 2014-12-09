@@ -57,3 +57,14 @@ target/
 
 .idea
 testquotes
+.idea/selbot.iml
+.idea/.name
+.idea/encodings.xml
+.idea/uiDesigner.xml
+.idea/compiler.xml
+.idea/workspace.xml
+.idea/copyright
+.idea/modules.xml
+.idea/scopes
+.idea/misc.xml
+.idea/vcs.xml
