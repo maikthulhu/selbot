@@ -172,7 +172,13 @@ class SELBot(SingleServerIRCBot):
                 else:
                     if soup.title != None and soup.title.string != None and soup.title.string != "ERROR: The requested URL could not be retrieved":
                         title = re.sub(r'\s+', r' ', soup.title.string).strip()
-                        connection.privmsg(event.target, '[title] {}'.format(title.encode('utf-8'))
+                        good_title = ""
+                        for char in title:
+                            try:
+                                good_title += char.decode('utf-8')
+                            except UnicodeEncodeError:
+                                print char
+                        connection.privmsg(event.target, '[title] {}'.format(good_title))
                     break
         # He should only look for things like 'botsnack' if there's nothing else to do!
         else:
