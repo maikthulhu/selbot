@@ -12,4 +12,5 @@ Ouch!
 I deserved that...
 Hey!  What was that for?!
 I regret nothing!
-[smack-back]
+/me smacks [speaker]
+/me smacks logavanc

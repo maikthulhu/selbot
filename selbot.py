@@ -122,10 +122,7 @@ class SELBot(SingleServerIRCBot):
             with open('smack_responses.txt', 'r') as f:
                 responses = f.readlines()
             response = random.choice(responses).strip('\n').strip('\r')
-            if '[smack-back]' in response:
-                response = '{}-smack'.format(event.source.split('!')[0])
-                connection.privmsg(event.target, response)
-            elif '/me' in response:
+            if '/me' in response:
                 response = ' '.join(response.split(' ')[1:])
                 response = response.replace('[speaker]', event.source.split('!')[0])
                 connection.action(event.target, response)
