@@ -127,7 +127,7 @@ class SELBot(SingleServerIRCBot):
                 connection.privmsg(event.target, response)
             elif '/me' in response:
                 response = ' '.join(response.split(' ')[1:])
-                response = response.replace('you', event.source.split('!')[0])
+                response = response.replace('[speaker]', event.source.split('!')[0])
                 connection.action(event.target, response)
             else:
                 connection.privmsg(event.target, response)
