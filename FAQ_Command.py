@@ -2,7 +2,7 @@ import requests
 
 from BeautifulSoup import BeautifulSoup
 
-from Commands import Command
+from Command import Command
 from util import *
 from FAQ import FAQ
 

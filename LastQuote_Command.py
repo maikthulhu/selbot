@@ -1,4 +1,4 @@
-from Commands import Command
+from Command import Command
 
 
 class LastQuote_Command(Command):

@@ -2,7 +2,7 @@ import urllib
 import json
 import re
 
-from Commands import Command
+from Command import Command
 
 
 class Xkcd_Command(Command):

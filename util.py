@@ -1,10 +1,8 @@
 import datetime
-import requests
 import urllib
 import json
 import re
 import subprocess
-from BeautifulSoup import BeautifulSoup
 
 
 def parse_settings(settings_file):
@@ -18,18 +16,6 @@ def groots_birthday():
     else:
         return False
 
-def make_soup(url, target=None):
-    soup = None
-    try:
-        r = requests.get(url, proxies=self.cfg['proxies'])
-        if 'text/html' not in r.headers['content-type']:
-            print r.headers['content-type']
-        soup = BeautifulSoup(r.text, convertEntities=BeautifulSoup.HTML_ENTITIES)
-    except:
-        print "ERROR: requests of BeautifulSoup: {0} ({1})".format(target if target else "", url)
-    if 'ERROR: The requested URL could not be retrieved' == soup.title.string:
-        soup = None
-    return soup
 
 # From maxbuss 15 August 2014
 def find_xkcd(c, e, key):
