@@ -119,8 +119,19 @@ class SELBot(SingleServerIRCBot):
         if self.match_keyword(args, 'botsnack'):
             connection.privmsg(event.target, "nom nom nom")
         elif self.match_keyword(args, 'botsmack'):
-            # TODO:  Implement list of responses
-            pass
+            with open('smack_responses.txt', 'r') as f:
+                responses = f.readlines()
+            response = random.choice(responses).strip('\n').strip('\r')
+            if '[smack-back]' in response:
+                response = '{}-smack'.format(event.source.split('!')[0])
+                connection.privmsg(event.target, response)
+            elif '/me' in response:
+                response = ' '.join(response.split(' ')[1:])
+                response = response.replace('you', event.source.split('!')[0])
+                connection.action(event.target, response)
+            else:
+                connection.privmsg(event.target, response)
+
 
     #inherited function from SingleServerIRCBot
     def on_pubmsg(self, connection, event):
@@ -160,26 +171,16 @@ class SELBot(SingleServerIRCBot):
         # Grab/display <title> text for URLs
         elif len(url_args) > 0:
             for arg in url_args:
-                try:
-                    r = requests.get(arg, proxies=self.cfg['proxies'])
-                    if 'text/html' not in r.headers['content-type']:
-                        connection.privmsg(event.target, r.headers['content-type'])
-                        break
-                    soup = BeautifulSoup(r.text, convertEntities=BeautifulSoup.HTML_ENTITIES)
-                except:
-                    print "ERROR: requests or BeautifulSoup: {0} ({1})".format(event.target, arg)
-                    pass
-                else:
-                    if soup.title != None and soup.title.string != None and soup.title.string != "ERROR: The requested URL could not be retrieved":
-                        title = re.sub(r'\s+', r' ', soup.title.string).strip()
-                        good_title = ""
-                        for char in title:
-                            try:
-                                good_title += char.decode('utf-8')
-                            except UnicodeEncodeError:
-                                print char
-                        connection.privmsg(event.target, '[title] {}'.format(good_title))
-                    break
+                soup = make_soup(arg, event.target)
+                if soup and soup.title and soup.title.string:
+                    title = re.sub(r'\s+', r' ', soup.title.string).strip()
+                    good_title = ""
+                    for char in title:
+                        try:
+                            good_title += char.decode('utf-8')
+                        except UnicodeEncodeError:
+                            print char
+                    connection.privmsg(event.target, '[title] {}'.format(good_title))
         # He should only look for things like 'botsnack' if there's nothing else to do!
         else:
             self.match_keyword_list(connection, event, args)

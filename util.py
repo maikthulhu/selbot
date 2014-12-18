@@ -1,8 +1,10 @@
 import datetime
+import requests
 import urllib
 import json
 import re
 import subprocess
+from BeautifulSoup import BeautifulSoup
 
 
 def parse_settings(settings_file):
@@ -44,3 +46,17 @@ def check_output(command):
     if retcode:
         raise subprocess.CalledProcessError(retcode, command, output=output[0])
     return output[0]
+
+def make_soup(self, url, target):
+    soup = None
+    try:
+        r = requests.get(url, proxies=self.cfg['proxies'])
+        if 'text/html' not in r.headers['content-type']:
+            print r.headers['content-type']
+        soup = BeautifulSoup(r.text, convertEntities=BeautifulSoup.HTML_ENTITIES)
+    except:
+        print "ERROR: requests or BeautifulSoup: {0} ({1})".format(target, url)
+    if soup and "ERROR: The requested URL could not be retrieved" == soup.title.string:
+        soup = None
+    return soup
+
