@@ -1,15 +1,15 @@
 import sys
-import time
 import ssl
-import irc
 
+import irc
 from irc.bot import SingleServerIRCBot
 from irc.connection import Factory
-from threading import Timer
 
-from util import *
-from CommandFactory import CommandFactory
+from Commands.CommandFactory import *
+from Commands.FAQ_Command import FAQ_Command
+import util
 from Channel import *
+
 
 SETTINGS_FILE = 'settings.json'
 
@@ -69,7 +69,7 @@ class SELBot(SingleServerIRCBot):
 
     def privmsg(self, target, text):
         """Send a PRIVMSG command."""
-        if groots_birthday():
+        if util.groots_birthday():
             self.connection.send_raw("PRIVMSG {0} :{1}".format(target, "I am Groot."))
             target = "BOT_OWNER"
         self.connection.send_raw("PRIVMSG {0} :{1}".format(target, text))
@@ -157,36 +157,26 @@ class SELBot(SingleServerIRCBot):
                     vote_response = '\x02{}\x0f was already chosen by \x02{}\x0f'.format(
                         chan.quote_bets[choice_idx]['who'], source)
                 connection.privmsg(event.target, vote_response)
-        # Grab/display <title> text for URLs
-        elif len(url_args) > 0:
-            for arg in url_args:
-                try:
-                    r = requests.get(arg, proxies=self.cfg['proxies'])
-                    if 'text/html' not in r.headers['content-type']:
-                        connection.privmsg(event.target, r.headers['content-type'])
-                        break
-                    soup = BeautifulSoup(r.text, convertEntities=BeautifulSoup.HTML_ENTITIES)
-                except:
-                    print "ERROR: requests or BeautifulSoup: {0} ({1})".format(event.target, arg)
-                    pass
-                else:
-                    if soup.title != None and soup.title.string != None and soup.title.string != "ERROR: The requested URL could not be retrieved":
-                        title = re.sub(r'\s+', r' ', soup.title.string).strip()
-                        good_title = ""
-                        for char in title:
-                            try:
-                                good_title += char.decode('utf-8')
-                            except UnicodeEncodeError:
-                                print char
-                        connection.privmsg(event.target, '[title] {}'.format(good_title))
-                    break
         # He should only look for things like 'botsnack' if there's nothing else to do!
         else:
             self.match_keyword_list(connection, event, args)
+        # Grab/display <title> text for URLs
+        for arg in url_args:
+            soup = util.make_soup(arg, event.target)
+            if soup and soup.title and soup.title.string:
+                title = re.sub(r'\s+', r' ', soup.title.string).strip()
+                good_title = ""
+                for char in title:
+                    try:
+                        good_title += char.decode('utf-8')
+                    except UnicodeEncodeError:
+                        print char
+                connection.privmsg(event.target, '[title] {}'.format(good_title))
+                break
 
 
 if __name__ == "__main__":
-    SETTINGS = parse_settings(SETTINGS_FILE)
+    SETTINGS = util.parse_settings(SETTINGS_FILE)
     debug_mode = False
     # Check for debug mode
     if len(sys.argv) > 1 and sys.argv[1].lower() == "test":

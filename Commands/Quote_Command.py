@@ -1,5 +1,5 @@
+from Commands import Command
 from Quotes import Quote
-from Command import Command
 
 
 class Quote_Command(Command):

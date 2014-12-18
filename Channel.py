@@ -1,11 +1,8 @@
 import re
 import textwrap
-
 from threading import Timer
 
-from FAQ import *
 from Quotes import *
-from FAQ_Command import FAQ_Command
 
 
 class Channel():

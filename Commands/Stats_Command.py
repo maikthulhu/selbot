@@ -1,7 +1,7 @@
 import datetime
 import time
 
-from Command import Command
+from Commands import Command
 
 
 class Stats_Command(Command):
