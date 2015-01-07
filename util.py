@@ -47,10 +47,10 @@ def check_output(command):
         raise subprocess.CalledProcessError(retcode, command, output=output[0])
     return output[0]
 
-def make_soup(url, target):
+def make_soup(url, target, cfg):
     soup = None
     try:
-        r = requests.get(url, proxies=self.cfg['proxies'])
+        r = requests.get(url, proxies=cfg['proxies'])
         if 'text/html' not in r.headers['content-type']:
             print r.headers['content-type']
         soup = BeautifulSoup(r.text, convertEntities=BeautifulSoup.HTML_ENTITIES)

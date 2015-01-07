@@ -168,7 +168,7 @@ class SELBot(SingleServerIRCBot):
         # Grab/display <title> text for URLs
         elif len(url_args) > 0:
             for arg in url_args:
-                soup = make_soup(arg, event.target)
+                soup = make_soup(arg, event.target, self.cfg)
                 if soup and soup.title and soup.title.string:
                     title = re.sub(r'\s+', r' ', soup.title.string).strip()
                     good_title = ""
