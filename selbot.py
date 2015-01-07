@@ -176,7 +176,7 @@ class SELBot(SingleServerIRCBot):
                         try:
                             good_title += char.decode('utf-8')
                         except UnicodeEncodeError:
-                            print char
+                            continue
                     connection.privmsg(event.target, '[title] {}'.format(good_title))
         # He should only look for things like 'botsnack' if there's nothing else to do!
         else:
