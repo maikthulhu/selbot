@@ -47,7 +47,7 @@ def check_output(command):
         raise subprocess.CalledProcessError(retcode, command, output=output[0])
     return output[0]
 
-def make_soup(self, url, target):
+def make_soup(url, target):
     soup = None
     try:
         r = requests.get(url, proxies=self.cfg['proxies'])
