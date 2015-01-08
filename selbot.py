@@ -151,7 +151,8 @@ class SELBot(SingleServerIRCBot):
         #Look for triggered commands
         if args[0].startswith("!"):
             cmd_class = CommandFactory.factory(args[0], connection, event, chan, self.start_time)
-            cmd_class.resolve()
+            if cmd_class:
+                cmd_class.resolve()
         #Last-Ten Quote Voting handler
         elif chan.is_valid_vote(args, source):
             choice = int(args[1])
