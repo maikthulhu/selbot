@@ -56,7 +56,7 @@ def make_soup(url, target, cfg):
         soup = BeautifulSoup(r.text, convertEntities=BeautifulSoup.HTML_ENTITIES)
     except:
         print "ERROR: requests or BeautifulSoup: {0} ({1})".format(target, url)
-    if soup and "ERROR: The requested URL could not be retrieved" == soup.title.string:
+    if soup and (not soup.title or "ERROR: The requested URL could not be retrieved" == soup.title.string):
         soup = None
     return soup
 
