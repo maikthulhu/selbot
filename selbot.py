@@ -27,7 +27,7 @@ class SELBot(SingleServerIRCBot):
         else:
             self.nickname = self.cfg['nickname']
             self.realname = self.cfg['realname']
-            for channel in self.cfg['channel_list']:
+	    for channel in self.cfg['channel_list'][1:]:
                 self.channel_list.append(Channel(channel, self.nickname, self.cfg['quotes_dir']))
         self.ignore_list = []
         self.faq_timeout = self.cfg['faq_timeout']
@@ -107,6 +107,11 @@ class SELBot(SingleServerIRCBot):
                 ch = args[1]
                 nick = args[2]
                 connection.mode(ch, "+o %s" % nick)
+	    elif "!kick" == args[0].lower() and len(args) > 2:
+                ch = args[1]
+		nick = args[2]
+		comment = args[3:]
+		connection.kick(ch, nick, comment)
 
     # "keyword[ ...]" OR "[... ]keyword\S"
     # "[... ]keyword[ ...]" AND "[... ]nickname[ ...]" or vice versa
